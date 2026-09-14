@@ -36,7 +36,10 @@ jobs:
         run: python -m unittest discover -s tests -v
 
       - name: Byte-compile the CLI package
-        run: python -m py_compile claudesync/*.py
+        # compileall (not py_compile + a glob) because the default Windows
+        # runner shell is PowerShell, which doesn't expand `*.py` globs for
+        # external commands the way bash does.
+        run: python -m compileall -q claudesync
 
   desktop-unit-tests:
     name: Desktop core tests (${{ matrix.os }}, node ${{ matrix.node-version }})
