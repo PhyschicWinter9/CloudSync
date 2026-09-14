@@ -1,0 +1,66 @@
+# ClaudeSync Desktop
+
+A menu-bar/tray desktop app for ClaudeSync: automatic, no-terminal-required
+backup and restore for everything Claude Code stores on your machine.
+
+It reimplements the same scanner, backup, and restore logic as the
+[Python CLI](../README.md) natively in Node (see `src/core/`), writing the
+exact same `manifest.json` format — so a backup made by the desktop app can
+be restored by the CLI and vice versa, and they can safely share one backup
+directory.
+
+## What it does
+
+- Lives in the system tray/menu bar with a "Back Up Now" action and a
+  live status ("Last backup: ...").
+- A window with four tabs:
+  - **Dashboard** — last backup time, item counts by category, quick actions.
+  - **Backup** — scan this machine and see exactly what was found before
+    backing it up.
+  - **Restore** — point at a backup directory, preview (dry run) what would
+    change, then restore, optionally filtered to specific categories.
+  - **Settings** — backup destination, git remote + push toggle, automatic
+    backup interval, and "start at login".
+- Runs backups automatically on a configurable interval once enabled in
+  Settings, and shows a native notification when one completes or fails.
+
+## Develop
+
+```
+cd desktop
+npm install
+npm start
+```
+
+## Test
+
+Core scanning/backup/restore logic has no Electron dependency and is
+covered by Node's built-in test runner:
+
+```
+npm test
+```
+
+## Regenerating icons
+
+App and tray icons are generated PNGs (no image-editing dependency):
+
+```
+npm run generate-icons
+```
+
+## Package for distribution
+
+```
+npm run dist
+```
+
+Uses `electron-builder` (see the `build` key in `package.json`) to produce
+a macOS `.dmg`, Windows installer, or Linux package, each pointing at
+`build/icon.png`.
+
+## Security note
+
+Same as the CLI: MCP configs and settings can carry plaintext secrets.
+Treat your backup destination (and any git remote you push it to) as
+sensitive — private repositories only.

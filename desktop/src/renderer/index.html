@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;" />
+  <title>ClaudeSync</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <nav class="sidebar">
+      <div class="brand">
+        <img src="assets/icon.png" alt="" class="brand-icon" />
+        <span class="brand-name">ClaudeSync</span>
+      </div>
+      <button class="nav-item active" data-tab="dashboard">Dashboard</button>
+      <button class="nav-item" data-tab="backup">Backup</button>
+      <button class="nav-item" data-tab="restore">Restore</button>
+      <button class="nav-item" data-tab="settings">Settings</button>
+      <div class="sidebar-footer">
+        <span id="status-dot" class="status-dot"></span>
+        <span id="status-text">Idle</span>
+      </div>
+    </nav>
+
+    <main class="content">
+      <section id="tab-dashboard" class="tab active">
+        <h1>Dashboard</h1>
+        <p class="subtitle">Automatic backup for everything Claude Code stores on this machine.</p>
+
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-label">Last backup</div>
+            <div class="card-value" id="last-run-value">Never</div>
+          </div>
+          <div class="card">
+            <div class="card-label">Items backed up</div>
+            <div class="card-value" id="last-total-value">—</div>
+          </div>
+          <div class="card">
+            <div class="card-label">Automatic backups</div>
+            <div class="card-value" id="auto-status-value">Off</div>
+          </div>
+        </div>
+
+        <div id="last-run-error" class="error-banner hidden"></div>
+
+        <div class="actions">
+          <button id="dashboard-backup-now" class="btn btn-primary">Back Up Now</button>
+          <button id="dashboard-open-folder" class="btn">Open Backup Folder</button>
+        </div>
+
+        <h2>By category</h2>
+        <div id="category-breakdown" class="category-grid"></div>
+      </section>
+
+      <section id="tab-backup" class="tab">
+        <h1>Backup</h1>
+        <p class="subtitle">Scan this machine, then copy everything into a versioned backup directory.</p>
+
+        <div class="actions">
+          <button id="scan-btn" class="btn">Scan</button>
+          <button id="backup-btn" class="btn btn-primary">Back Up Now</button>
+        </div>
+
+        <div id="scan-summary" class="summary hidden"></div>
+        <div id="scan-list" class="item-list"></div>
+      </section>
+
+      <section id="tab-restore" class="tab">
+        <h1>Restore</h1>
+        <p class="subtitle">Restore items from a backup directory back to their original locations.</p>
+
+        <label class="field">
+          <span>Backup source directory</span>
+          <div class="field-row">
+            <input id="restore-source" type="text" placeholder="~/.claudesync-backup" />
+            <button id="restore-choose-source" class="btn">Choose…</button>
+          </div>
+        </label>
+
+        <button id="restore-load" class="btn">Load</button>
+
+        <div id="restore-categories" class="category-checklist hidden"></div>
+
+        <div class="actions">
+          <button id="restore-preview" class="btn" disabled>Preview (dry run)</button>
+          <button id="restore-apply" class="btn btn-danger" disabled>Restore</button>
+        </div>
+
+        <div id="restore-results" class="item-list"></div>
+      </section>
+
+      <section id="tab-settings" class="tab">
+        <h1>Settings</h1>
+
+        <label class="field">
+          <span>Backup destination directory</span>
+          <div class="field-row">
+            <input id="settings-dest" type="text" placeholder="~/.claudesync-backup" />
+            <button id="settings-choose-dest" class="btn">Choose…</button>
+          </div>
+        </label>
+
+        <label class="field">
+          <span>Git remote URL (optional, e.g. a private repo)</span>
+          <input id="settings-remote" type="text" placeholder="git@github.com:you/claude-backup.git" />
+        </label>
+
+        <label class="field-inline">
+          <input id="settings-push" type="checkbox" />
+          <span>Push to remote after every backup</span>
+        </label>
+
+        <hr />
+
+        <label class="field-inline">
+          <input id="settings-auto" type="checkbox" />
+          <span>Automatic backups</span>
+        </label>
+
+        <label class="field">
+          <span>Interval (hours)</span>
+          <input id="settings-interval" type="number" min="1" max="168" />
+        </label>
+
+        <label class="field-inline">
+          <input id="settings-login" type="checkbox" />
+          <span>Start ClaudeSync at login</span>
+        </label>
+
+        <div class="actions">
+          <button id="settings-save" class="btn btn-primary">Save Settings</button>
+        </div>
+
+        <p class="security-note">
+          MCP server configs and settings can contain API keys and tokens in plaintext.
+          ClaudeSync backs them up faithfully so restores are exact — keep your backup
+          destination private (a private git repository, not a public one).
+        </p>
+      </section>
+    </main>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

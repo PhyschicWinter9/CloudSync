@@ -1,0 +1,40 @@
+{
+  "name": "claudesync-desktop",
+  "version": "0.1.0",
+  "description": "ClaudeSync desktop app: automatic backup and restore for everything Claude Code stores on your machine",
+  "private": true,
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test",
+    "generate-icons": "node scripts/generate-icons.js",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^44.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.claudesync.app",
+    "productName": "ClaudeSync",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "build/icon.png",
+      "package.json"
+    ],
+    "mac": {
+      "icon": "build/icon.png",
+      "category": "public.app-category.utilities"
+    },
+    "win": {
+      "icon": "build/icon.png"
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "category": "Utility"
+    }
+  }
+}

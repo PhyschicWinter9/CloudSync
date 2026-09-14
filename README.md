@@ -10,6 +10,12 @@ directory Claude Code has ever been opened in (read straight out of
 it keeps under git, so every backup is a commit you can diff, roll back, or
 push to a private remote.
 
+Two ways to use it, sharing one backup format:
+
+- **CLI** (this directory) — `claudesync scan|backup|restore|schedule`.
+- **[Desktop app](desktop/)** — a tray/menu-bar app with a GUI for the same
+  operations, plus a built-in scheduler. See `desktop/README.md`.
+
 ## What gets backed up
 
 | Category   | Global (`~/.claude/`, `~/.claude.json`)      | Per project                          |
