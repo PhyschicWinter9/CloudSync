@@ -232,6 +232,8 @@ function registerIpcHandlers() {
   ipcMain.handle('shell:openPath', (_event, targetPath) => shell.openPath(targetPath));
 }
 
+const SMOKE_TEST = process.argv.includes('--smoke-test');
+
 app.whenReady().then(() => {
   store = new Store(settingsPath());
   registerIpcHandlers();
@@ -242,6 +244,17 @@ app.whenReady().then(() => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+
+  if (SMOKE_TEST) {
+    // CI-only: prove the app boots (tray + window + IPC wiring) without
+    // needing a human to look at it, then exit cleanly.
+    mainWindow.webContents.once('did-finish-load', () => {
+      setTimeout(() => {
+        app.isQuiting = true;
+        app.quit();
+      }, 500);
+    });
+  }
 });
 
 app.on('window-all-closed', () => {

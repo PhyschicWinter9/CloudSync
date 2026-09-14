@@ -1,5 +1,7 @@
 # ClaudeSync
 
+[![CI](https://github.com/PhyschicWinter9/CloudSync/actions/workflows/ci.yml/badge.svg)](https://github.com/PhyschicWinter9/CloudSync/actions/workflows/ci.yml)
+
 Automatic backup (and restore) for everything Claude Code stores on your
 machine — not just `~/.claude/`.
 
@@ -104,4 +106,21 @@ No third-party dependencies are required to run or test ClaudeSync.
 
 ```
 python3 -m unittest discover -s tests -v
+```
+
+## CI/CD
+
+- **CI** (`.github/workflows/ci.yml`) runs on every push and pull request:
+  the Python CLI's unit tests across Linux/macOS/Windows and two Python
+  versions, the desktop app's Node unit tests across the same OS matrix,
+  and an Electron boot smoke test (launches the real app under Xvfb and
+  confirms it starts without crashing).
+- **Release** (`.github/workflows/release.yml`) runs when a tag matching
+  `v*.*.*` is pushed: it builds the desktop app installer for macOS,
+  Windows, and Linux, builds the Python CLI's sdist/wheel, and attaches
+  all of them to a GitHub Release for that tag.
+
+```
+git tag v0.1.0
+git push origin v0.1.0
 ```

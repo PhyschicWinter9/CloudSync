@@ -1,0 +1,117 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python-tests:
+    name: Python CLI tests (${{ matrix.os }}, py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ['3.9', '3.12']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Configure git identity for backup/restore tests
+        run: |
+          git config --global user.email "ci@example.com"
+          git config --global user.name "ClaudeSync CI"
+
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Byte-compile the CLI package
+        run: python -m py_compile claudesync/*.py
+
+  desktop-unit-tests:
+    name: Desktop core tests (${{ matrix.os }}, node ${{ matrix.node-version }})
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: desktop
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node-version: ['20', '22']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Configure git identity for backup/restore tests
+        run: |
+          git config --global user.email "ci@example.com"
+          git config --global user.name "ClaudeSync CI"
+
+      - name: Install dependencies (skip the Electron binary; unit tests don't launch it)
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+        run: npm ci
+
+      - name: Run core logic tests
+        run: npm test
+
+  desktop-electron-smoke:
+    name: Desktop app boots (Electron + Xvfb smoke test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: desktop
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Configure git identity
+        run: |
+          git config --global user.email "ci@example.com"
+          git config --global user.name "ClaudeSync CI"
+
+      - name: Install dependencies (including Electron)
+        run: npm ci
+
+      - name: Install Xvfb and Electron runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libnss3 libgtk-3-0 libgbm1 libasound2t64
+
+      - name: Launch the app under Xvfb and confirm it starts cleanly
+        run: xvfb-run -a node scripts/ci/electron-smoke.js
+        env:
+          HOME: /tmp/claudesync-ci-home
+
+  all-checks:
+    name: All checks passed
+    if: always()
+    needs: [python-tests, desktop-unit-tests, desktop-electron-smoke]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if any dependency failed
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
