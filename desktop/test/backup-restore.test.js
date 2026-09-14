@@ -9,6 +9,16 @@ const path = require('path');
 const { runBackup } = require('../src/core/backup');
 const restore = require('../src/core/restore');
 
+// `git commit` (inside runBackup) fails with "Author identity unknown" on
+// any machine/runner without a global git user.name/user.email already
+// configured. Setting these here makes the suite self-contained instead
+// of depending on the host's git config; it has no effect on the app
+// itself, since real backups still commit under the user's own identity.
+process.env.GIT_AUTHOR_NAME ||= 'ClaudeSync Tests';
+process.env.GIT_AUTHOR_EMAIL ||= 'claudesync-tests@example.com';
+process.env.GIT_COMMITTER_NAME ||= process.env.GIT_AUTHOR_NAME;
+process.env.GIT_COMMITTER_EMAIL ||= process.env.GIT_AUTHOR_EMAIL;
+
 function makeFixture() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'claudesync-desktop-'));
   const home = path.join(root, 'home');

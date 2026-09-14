@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import tempfile
 import unittest
@@ -6,6 +7,16 @@ from pathlib import Path
 
 from claudesync import restore
 from claudesync.backup import run_backup
+
+# git commit (inside run_backup) fails with "Author identity unknown" on
+# any machine/runner without a global git user.name/user.email already
+# configured. Setting these here makes the suite self-contained instead
+# of depending on the host's git config; it has no effect on the app
+# itself, since real backups still commit under the user's own identity.
+os.environ.setdefault("GIT_AUTHOR_NAME", "ClaudeSync Tests")
+os.environ.setdefault("GIT_AUTHOR_EMAIL", "claudesync-tests@example.com")
+os.environ.setdefault("GIT_COMMITTER_NAME", os.environ["GIT_AUTHOR_NAME"])
+os.environ.setdefault("GIT_COMMITTER_EMAIL", os.environ["GIT_AUTHOR_EMAIL"])
 
 
 def _git(args, cwd):

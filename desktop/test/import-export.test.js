@@ -12,6 +12,13 @@ const importer = require('../src/core/importer');
 const exporter = require('../src/core/exporter');
 const { readZip } = require('../src/core/zip');
 
+// See backup-restore.test.js: makes `git commit` work without relying on
+// the host already having a global git identity configured.
+process.env.GIT_AUTHOR_NAME ||= 'ClaudeSync Tests';
+process.env.GIT_AUTHOR_EMAIL ||= 'claudesync-tests@example.com';
+process.env.GIT_COMMITTER_NAME ||= process.env.GIT_AUTHOR_NAME;
+process.env.GIT_COMMITTER_EMAIL ||= process.env.GIT_AUTHOR_EMAIL;
+
 function git(args, cwd) {
   execFileSync('git', args, { cwd, stdio: 'pipe' });
 }

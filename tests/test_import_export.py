@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import tempfile
 import unittest
@@ -6,6 +7,13 @@ from pathlib import Path
 
 from claudesync import exporter, importer
 from claudesync.backup import run_backup
+
+# See test_backup_restore.py: makes `git commit` work without relying on
+# the host already having a global git identity configured.
+os.environ.setdefault("GIT_AUTHOR_NAME", "ClaudeSync Tests")
+os.environ.setdefault("GIT_AUTHOR_EMAIL", "claudesync-tests@example.com")
+os.environ.setdefault("GIT_COMMITTER_NAME", os.environ["GIT_AUTHOR_NAME"])
+os.environ.setdefault("GIT_COMMITTER_EMAIL", os.environ["GIT_AUTHOR_EMAIL"])
 
 
 def _git(args, cwd):
