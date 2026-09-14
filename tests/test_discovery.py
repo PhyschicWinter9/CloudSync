@@ -98,6 +98,30 @@ class TestScanAll(FakeHomeTestCase):
         memory_items = [i for i in items if i.category == "memory" and i.scope == str(self.project_dir)]
         self.assertEqual(len(memory_items), 1)
 
+    def test_scope_matches_the_path_recorded_in_claude_json_even_through_a_symlink(self):
+        # Regression test: on Windows, Path.resolve() can rewrite a short
+        # (8.3) path segment to its long form, and on macOS it follows the
+        # /tmp -> /private/tmp symlink. Either way, item.scope must stay
+        # the literal path recorded in ~/.claude.json (what a restore
+        # should write back to), not an OS-normalized alias of it that
+        # happens to point at the same directory. A symlink reproduces the
+        # same class of divergence on any platform.
+        actual_project = self.home / "actual-project"
+        actual_project.mkdir()
+        (actual_project / "CLAUDE.md").write_text("# project memory", encoding="utf-8")
+
+        linked_project = self.home / "linked-project"
+        linked_project.symlink_to(actual_project, target_is_directory=True)
+
+        claude_json = self.home / ".claude.json"
+        claude_json.write_text(
+            json.dumps({"projects": {str(linked_project): {}}}), encoding="utf-8"
+        )
+
+        items = scan_all(home=self.home)
+        memory_item = next(i for i in items if i.category == "memory")
+        self.assertEqual(memory_item.scope, str(linked_project))
+
 
 if __name__ == "__main__":
     unittest.main()

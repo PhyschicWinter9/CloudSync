@@ -161,10 +161,15 @@ def scan_all(
 
     seen_projects: set[Path] = set()
     for project in list(discover_projects(home)) + list(extra_projects):
-        resolved = Path(project).expanduser().resolve()
+        project_path = Path(project).expanduser()
+        # Resolve only to dedupe (so a symlinked or short-path alias of a
+        # project already seen isn't scanned twice); keep the unresolved
+        # path as the item's scope so it matches what's actually recorded
+        # in ~/.claude.json instead of an OS-normalized alias of it.
+        resolved = project_path.resolve()
         if resolved in seen_projects:
             continue
         seen_projects.add(resolved)
-        items.extend(scan_project(resolved))
+        items.extend(scan_project(project_path))
 
     return items
