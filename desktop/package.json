@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "description": "ClaudeSync desktop app: automatic backup and restore for everything Claude Code stores on your machine",
   "private": true,
+  "author": "ClaudeSync contributors",
+  "repository": "https://github.com/PhyschicWinter9/CloudSync",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
@@ -17,6 +19,7 @@
   "build": {
     "appId": "com.claudesync.app",
     "productName": "ClaudeSync",
+    "publish": null,
     "directories": {
       "output": "dist"
     },
@@ -27,14 +30,23 @@
     ],
     "mac": {
       "icon": "build/icon.png",
-      "category": "public.app-category.utilities"
+      "category": "public.app-category.utilities",
+      "target": ["dmg", "zip"]
     },
     "win": {
-      "icon": "build/icon.png"
+      "icon": "build/icon.png",
+      "target": ["nsis", "portable"]
+    },
+    "nsis": {
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.${ext}"
     },
     "linux": {
       "icon": "build/icon.png",
-      "category": "Utility"
+      "category": "Utility",
+      "target": ["AppImage"]
     }
   }
 }

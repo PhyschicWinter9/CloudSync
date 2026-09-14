@@ -55,9 +55,21 @@ npm run generate-icons
 npm run dist
 ```
 
-Uses `electron-builder` (see the `build` key in `package.json`) to produce
-a macOS `.dmg`, Windows installer, or Linux package, each pointing at
-`build/icon.png`.
+Uses `electron-builder` (see the `build` key in `package.json`), building
+for whichever OS you run it on:
+
+| OS | Installer | Portable (no install) |
+|----|-----------|------------------------|
+| Windows | `ClaudeSync-Setup-<version>.exe` (NSIS) | `ClaudeSync-<version>-portable.exe` — a single file, just run it |
+| macOS | `ClaudeSync-<version>.dmg` | `ClaudeSync-<version>-mac.zip` — unzip and run the `.app` |
+| Linux | — | `ClaudeSync-<version>.AppImage` — already a single portable executable |
+
+All builds are unsigned (no code-signing certificate is configured), so
+macOS/Windows will show an "unidentified developer" warning on first launch.
+The CI/CD release workflow (`.github/workflows/release.yml`) builds all of
+these automatically on a version tag push and attaches them to a GitHub
+Release; it runs each OS's build on that OS's own GitHub-hosted runner
+(no cross-compilation).
 
 ## Security note
 
