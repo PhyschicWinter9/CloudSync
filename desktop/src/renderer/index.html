@@ -118,6 +118,27 @@
         </div>
 
         <div id="restore-results" class="item-list"></div>
+
+        <hr />
+
+        <h2>Chat sessions</h2>
+        <p class="subtitle">
+          Read a session transcript before you rely on it — verify it's actually the
+          conversation you expect.
+        </p>
+        <div class="actions">
+          <button id="sessions-list-btn" class="btn">List Chat Sessions</button>
+        </div>
+        <div id="sessions-list" class="item-list hidden"></div>
+
+        <div id="session-viewer" class="session-viewer hidden">
+          <div class="session-viewer-header">
+            <button id="session-viewer-back" class="btn">&larr; Back to list</button>
+            <span id="session-viewer-title" class="session-viewer-title"></span>
+          </div>
+          <div id="session-viewer-messages" class="session-messages"></div>
+          <div id="session-viewer-truncated" class="summary hidden"></div>
+        </div>
       </section>
 
       <section id="tab-settings" class="tab">

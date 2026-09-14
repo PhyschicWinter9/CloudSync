@@ -248,6 +248,107 @@ function wireRestoreTab() {
     });
     setStatus('ok', `Restored ${result.restored} item(s)`);
   });
+
+  wireSessionPreview();
+}
+
+function formatSessionDate(mtimeMs) {
+  return new Date(mtimeMs).toLocaleString();
+}
+
+function bubbleRoleClass(role) {
+  if (role === 'user') return 'role-user';
+  if (role === 'assistant') return 'role-assistant';
+  return 'role-other';
+}
+
+function renderSessionMessages(container, messages) {
+  container.innerHTML = '';
+  if (messages.length === 0) {
+    container.innerHTML = '<p class="summary">No readable messages found in this transcript.</p>';
+    return;
+  }
+  for (const msg of messages) {
+    const bubble = document.createElement('div');
+    bubble.className = `message-bubble ${bubbleRoleClass(msg.role)}`;
+    const roleLabel = document.createElement('span');
+    roleLabel.className = 'role-label';
+    roleLabel.textContent = msg.role;
+    bubble.appendChild(roleLabel);
+    bubble.appendChild(document.createTextNode(msg.text || '(no text)'));
+    container.appendChild(bubble);
+  }
+}
+
+function wireSessionPreview() {
+  let currentSessions = [];
+
+  $('sessions-list-btn').addEventListener('click', async () => {
+    setStatus('busy', 'Listing chat sessions…');
+    const result = await claudesync.listSessions({ sourceDir: $('restore-source').value });
+    const box = $('sessions-list');
+    box.classList.remove('hidden');
+
+    if (!result.ok) {
+      box.innerHTML = `<div class="item-row"><span class="item-path">Failed to list sessions: ${result.error}</span></div>`;
+      setStatus('error', 'Failed to list sessions');
+      return;
+    }
+
+    currentSessions = result.sessions;
+    box.innerHTML = '';
+    if (currentSessions.length === 0) {
+      box.innerHTML = '<div class="item-row"><span class="item-path">No chat session transcripts found here.</span></div>';
+    } else {
+      currentSessions.forEach((session, index) => {
+        const row = document.createElement('div');
+        row.className = 'item-row session-row';
+        row.dataset.index = String(index);
+        row.innerHTML = `
+          <span class="item-tag">${session.messageCount} msg</span>
+          <div class="session-meta">
+            <span>${formatSessionDate(session.mtimeMs)} — ${session.projectHint}</span>
+            <span class="session-snippet">${session.snippet || '(no preview available)'}</span>
+          </div>
+        `;
+        box.appendChild(row);
+      });
+    }
+    setStatus('ok', `${currentSessions.length} session(s) found`);
+  });
+
+  $('sessions-list').addEventListener('click', async (event) => {
+    const row = event.target.closest('.session-row');
+    if (!row) return;
+    const session = currentSessions[Number(row.dataset.index)];
+    if (!session) return;
+
+    setStatus('busy', 'Loading transcript…');
+    const result = await claudesync.readSession({ path: session.path, limit: 300 });
+    if (!result.ok) {
+      setStatus('error', 'Failed to load transcript');
+      return;
+    }
+
+    $('session-viewer-title').textContent = session.path;
+    renderSessionMessages($('session-viewer-messages'), result.messages);
+    const truncatedBox = $('session-viewer-truncated');
+    if (result.truncated) {
+      truncatedBox.textContent = `Showing the first ${result.messages.length} of ${result.total} messages.`;
+      truncatedBox.classList.remove('hidden');
+    } else {
+      truncatedBox.classList.add('hidden');
+    }
+
+    $('sessions-list').classList.add('hidden');
+    $('session-viewer').classList.remove('hidden');
+    setStatus('ok', 'Transcript loaded');
+  });
+
+  $('session-viewer-back').addEventListener('click', () => {
+    $('session-viewer').classList.add('hidden');
+    $('sessions-list').classList.remove('hidden');
+  });
 }
 
 function wireSettingsTab() {

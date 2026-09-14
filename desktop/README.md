@@ -18,7 +18,10 @@ directory.
   - **Backup** — scan this machine and see exactly what was found before
     backing it up; export the backup as a `.zip` for anywhere git isn't.
   - **Restore** — import a backup from a git remote or a `.zip` file, then
-    preview (dry run) and restore, optionally filtered to specific categories.
+    preview (dry run) and restore, optionally filtered to specific categories;
+    also lists chat session transcripts found in the backup and renders one as
+    a readable chat log, so you can confirm it's the real conversation before
+    you rely on it.
   - **Settings** — backup destination, git remote + push (cloud backup) and
     pull-first toggles, automatic backup interval, and "start at login".
 - Runs backups automatically on a configurable interval once enabled in
@@ -33,6 +36,13 @@ directory.
   reader/writer (`src/core/zip.js`) is dependency-free and produces
   standard zip files (cross-checked against the system `unzip`/`zip`
   tools and Python's `zipfile`).
+- **Preview chat sessions**: the Restore tab lists every `.jsonl` chat
+  transcript found in the loaded backup (with a timestamp and a snippet of
+  the first message) and renders one as a scrollable chat log — read the
+  actual conversation before you restore or otherwise rely on it. Claude
+  Code's transcript format isn't a documented API, so the parser
+  (`src/core/sessions.js`) is intentionally tolerant: it skips lines or
+  blocks it doesn't recognize rather than failing.
 
 ## Develop
 

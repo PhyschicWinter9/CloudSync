@@ -356,6 +356,98 @@ hr {
   margin: 16px 0;
 }
 
+.session-row {
+  cursor: pointer;
+}
+
+.session-row:hover {
+  background: #f1ece6;
+}
+
+.session-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.session-snippet {
+  color: var(--text-dim);
+}
+
+.session-viewer {
+  margin-top: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.session-viewer-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card-bg);
+}
+
+.session-viewer-title {
+  font-size: 12.5px;
+  color: var(--text-dim);
+  word-break: break-all;
+}
+
+.session-messages {
+  max-height: 420px;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg);
+}
+
+.message-bubble {
+  max-width: 80%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.message-bubble .role-label {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 3px;
+  opacity: 0.65;
+}
+
+.message-bubble.role-user {
+  align-self: flex-end;
+  background: var(--brand);
+  color: white;
+}
+
+.message-bubble.role-assistant {
+  align-self: flex-start;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.message-bubble.role-other {
+  align-self: center;
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--text-dim);
+  font-style: italic;
+  font-size: 12px;
+}
+
 .security-note {
   margin-top: 24px;
   font-size: 12px;
@@ -398,5 +490,13 @@ hr {
 
   .error-banner {
     background: #3a2320;
+  }
+
+  .session-row:hover {
+    background: #2f2b27;
+  }
+
+  .message-bubble.role-assistant {
+    background: #2f2b27;
   }
 }

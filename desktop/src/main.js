@@ -9,6 +9,7 @@ const { runBackup } = require('./core/backup');
 const restore = require('./core/restore');
 const importer = require('./core/importer');
 const exporter = require('./core/exporter');
+const sessions = require('./core/sessions');
 
 const DEFAULT_DEST = path.join(app.getPath('home'), '.claudesync-backup');
 
@@ -274,6 +275,22 @@ function registerIpcHandlers() {
     try {
       const resultPath = exporter.exportZip(sourceDir || currentDest(), outPath, { includeGitHistory: !!includeGitHistory });
       return { ok: true, outPath: resultPath };
+    } catch (err) {
+      return { ok: false, error: String(err.message || err) };
+    }
+  });
+
+  ipcMain.handle('sessions:list', (_event, { sourceDir } = {}) => {
+    try {
+      return { ok: true, sessions: sessions.listSessions(sourceDir || currentDest()) };
+    } catch (err) {
+      return { ok: false, error: String(err.message || err) };
+    }
+  });
+
+  ipcMain.handle('sessions:read', (_event, { path: filePath, limit }) => {
+    try {
+      return { ok: true, ...sessions.readSession(filePath, limit) };
     } catch (err) {
       return { ok: false, error: String(err.message || err) };
     }

@@ -5,9 +5,10 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import datetime
 from pathlib import Path
 
-from . import __version__, backup, exporter, importer, restore, schedule
+from . import __version__, backup, exporter, importer, restore, schedule, sessions
 from .discovery import scan_all
 
 DEFAULT_BACKUP_DIR = Path.home() / ".claudesync-backup"
@@ -122,6 +123,62 @@ def cmd_restore(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_sessions(args: argparse.Namespace) -> int:
+    infos = sessions.list_sessions(Path(args.source))
+
+    if args.json:
+        payload = [
+            {
+                "index": i + 1,
+                "path": str(info.path),
+                "project_hint": info.project_hint,
+                "size": info.size,
+                "mtime": info.mtime,
+                "message_count": info.message_count,
+                "snippet": info.snippet,
+            }
+            for i, info in enumerate(infos)
+        ]
+        print(json.dumps(payload, indent=2))
+        return 0
+
+    if not infos:
+        print(f"No chat session transcripts found under {args.source}.")
+        return 0
+
+    for i, info in enumerate(infos, start=1):
+        when = datetime.fromtimestamp(info.mtime).strftime("%Y-%m-%d %H:%M")
+        print(f"[{i}] {when}  {info.message_count} message(s)  ({info.project_hint})")
+        if info.snippet:
+            print(f"      {info.snippet}")
+    print(f"\n{len(infos)} session(s). Preview one with: claudesync preview-session <index>")
+    return 0
+
+
+def cmd_preview_session(args: argparse.Namespace) -> int:
+    candidate = Path(args.session)
+    if candidate.is_file() and candidate.suffix == ".jsonl":
+        path = candidate
+    else:
+        infos = sessions.list_sessions(Path(args.source))
+        try:
+            index = int(args.session)
+            if index < 1:
+                raise ValueError
+            path = infos[index - 1].path
+        except (ValueError, IndexError):
+            print(
+                f"'{args.session}' isn't a valid session index (1-{len(infos)}) or a .jsonl file path.",
+                file=sys.stderr,
+            )
+            return 1
+
+    print(f"--- {path} ---")
+    for line in sessions.render_text(path, limit=args.limit):
+        print(line)
+    return 0
+
+
 def cmd_schedule(args: argparse.Namespace) -> int:
     if args.action == "install":
         message = schedule.install(Path(args.dest), interval_hours=args.interval, push=args.push)
@@ -183,6 +240,21 @@ def build_parser() -> argparse.ArgumentParser:
         "--include-git-history", action="store_true", help="Include the .git directory (full commit history) in the archive"
     )
     p_export.set_defaults(func=cmd_export)
+
+    p_sessions = sub.add_parser(
+        "sessions", help="List chat session transcripts found in a backup, so you can verify one before restoring"
+    )
+    p_sessions.add_argument("--source", default=str(DEFAULT_BACKUP_DIR), help="Backup directory to look in (default: %(default)s)")
+    p_sessions.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
+    p_sessions.set_defaults(func=cmd_sessions)
+
+    p_preview = sub.add_parser(
+        "preview-session", help="Print a chat session transcript to verify it's correct before restoring it"
+    )
+    p_preview.add_argument("session", help="An index number from `claudesync sessions`, or a path to a .jsonl file")
+    p_preview.add_argument("--source", default=str(DEFAULT_BACKUP_DIR), help="Backup directory, used to resolve an index")
+    p_preview.add_argument("--limit", type=int, default=200, help="Max messages to print (default: %(default)s)")
+    p_preview.set_defaults(func=cmd_preview_session)
 
     p_schedule = sub.add_parser("schedule", help="Install or remove an automatic backup schedule")
     p_schedule.add_argument("action", choices=["install", "uninstall"])

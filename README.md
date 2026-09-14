@@ -80,6 +80,27 @@ in their original, absolute locations — including files that live inside
 whichever project directory they were opened from, on whichever machine
 you restore to.
 
+## Verify before you trust it
+
+Before restoring — especially after an `import` from somewhere else —
+you can read the actual chat transcripts a backup contains, to confirm
+it's the conversation history you expect:
+
+```
+claudesync sessions --source ~/.claudesync-backup
+# [1] 2026-01-14 10:32  4 message(s)  (-home-user-myproject)
+#       Can you fix the login bug?
+
+claudesync preview-session 1 --source ~/.claudesync-backup
+# [user] Can you fix the login bug?
+# [assistant] Sure, let me look at the auth module.
+# ...
+```
+
+`preview-session` also accepts a direct path to a `.jsonl` file instead of
+an index. This only reads the transcript — nothing is restored until you
+run `claudesync restore`.
+
 ## Cloud backup
 
 `--remote`/`--push` (above) push your backup to a git remote after every
