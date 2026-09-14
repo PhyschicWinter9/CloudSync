@@ -12,6 +12,7 @@ const DEFAULTS = {
   destDir: '',
   remoteUrl: '',
   push: false,
+  pullFirst: false,
   intervalHours: 6,
   autoBackupEnabled: false,
   lastRunAt: null,

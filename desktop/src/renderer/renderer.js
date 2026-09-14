@@ -86,6 +86,7 @@ function populateSettingsForm() {
   $('settings-dest').value = s.destDir || s.defaultDest || '';
   $('settings-remote').value = s.remoteUrl || '';
   $('settings-push').checked = !!s.push;
+  $('settings-pull-first').checked = !!s.pullFirst;
   $('settings-auto').checked = !!s.autoBackupEnabled;
   $('settings-interval').value = s.intervalHours || 6;
   $('settings-login').checked = !!s.startAtLogin;
@@ -137,6 +138,38 @@ function wireBackupTab() {
   });
 
   $('backup-btn').addEventListener('click', runBackupFlow);
+
+  $('export-btn').addEventListener('click', async () => {
+    const outPath = await claudesync.chooseZipDestination();
+    if (!outPath) return;
+    setStatus('busy', 'Exporting…');
+    const result = await claudesync.runExport({ sourceDir: state.settings.destDir || state.settings.defaultDest, outPath });
+    const box = $('export-result');
+    box.classList.remove('hidden');
+    if (result.ok) {
+      box.textContent = `Exported to ${result.outPath}`;
+      setStatus('ok', 'Export complete');
+    } else {
+      box.textContent = `Export failed: ${result.error}`;
+      setStatus('error', 'Export failed');
+    }
+  });
+}
+
+const RESTORE_CATEGORIES = ['memory', 'settings', 'mcp', 'agent', 'command', 'rule', 'plan', 'skill', 'session', 'plugin'];
+
+function populateRestoreCategoryChecklist() {
+  const box = $('restore-categories');
+  box.innerHTML = '';
+  for (const category of RESTORE_CATEGORIES) {
+    const label = document.createElement('label');
+    label.innerHTML = `<input type="checkbox" value="${category}" checked /> ${category}`;
+    box.appendChild(label);
+  }
+  box.classList.remove('hidden');
+  $('restore-preview').disabled = false;
+  $('restore-apply').disabled = false;
+  $('restore-results').innerHTML = '';
 }
 
 function wireRestoreTab() {
@@ -145,20 +178,44 @@ function wireRestoreTab() {
     if (dir) $('restore-source').value = dir;
   });
 
-  const CATEGORIES = ['memory', 'settings', 'mcp', 'agent', 'command', 'rule', 'plan', 'skill', 'session', 'plugin'];
+  $('restore-load').addEventListener('click', populateRestoreCategoryChecklist);
 
-  $('restore-load').addEventListener('click', () => {
-    const box = $('restore-categories');
-    box.innerHTML = '';
-    for (const category of CATEGORIES) {
-      const label = document.createElement('label');
-      label.innerHTML = `<input type="checkbox" value="${category}" checked /> ${category}`;
-      box.appendChild(label);
-    }
+  $('import-git-btn').addEventListener('click', async () => {
+    const url = $('import-git-url').value.trim();
+    if (!url) return;
+    setStatus('busy', 'Cloning / pulling…');
+    const result = await claudesync.runImport({ source: url, dest: $('restore-source').value || undefined });
+    const box = $('import-result');
     box.classList.remove('hidden');
-    $('restore-preview').disabled = false;
-    $('restore-apply').disabled = false;
-    $('restore-results').innerHTML = '';
+    if (result.ok) {
+      box.textContent = `Imported ${result.itemCount} item(s) into ${result.dest}`;
+      $('restore-source').value = result.dest;
+      populateRestoreCategoryChecklist();
+      setStatus('ok', 'Import complete');
+    } else {
+      box.textContent = `Import failed: ${result.error}`;
+      setStatus('error', 'Import failed');
+    }
+  });
+
+  $('import-zip-btn').addEventListener('click', async () => {
+    const zipPath = await claudesync.chooseZipToImport();
+    if (!zipPath) return;
+    const dir = await claudesync.chooseDirectory();
+    if (!dir) return;
+    setStatus('busy', 'Importing…');
+    const result = await claudesync.runImport({ source: zipPath, dest: dir });
+    const box = $('import-result');
+    box.classList.remove('hidden');
+    if (result.ok) {
+      box.textContent = `Imported ${result.itemCount} item(s) into ${result.dest}`;
+      $('restore-source').value = result.dest;
+      populateRestoreCategoryChecklist();
+      setStatus('ok', 'Import complete');
+    } else {
+      box.textContent = `Import failed: ${result.error}`;
+      setStatus('error', 'Import failed');
+    }
   });
 
   function selectedCategories() {
@@ -204,6 +261,7 @@ function wireSettingsTab() {
       destDir: $('settings-dest').value.trim(),
       remoteUrl: $('settings-remote').value.trim(),
       push: $('settings-push').checked,
+      pullFirst: $('settings-pull-first').checked,
       autoBackupEnabled: $('settings-auto').checked,
       intervalHours: Number($('settings-interval').value) || 6,
       startAtLogin: $('settings-login').checked,

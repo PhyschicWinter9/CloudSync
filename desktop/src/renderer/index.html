@@ -65,11 +65,40 @@
 
         <div id="scan-summary" class="summary hidden"></div>
         <div id="scan-list" class="item-list"></div>
+
+        <h2>Export</h2>
+        <p class="subtitle">
+          Zip up the backup directory to share anywhere git isn't — a cloud drive folder
+          (Dropbox/Drive/OneDrive/iCloud), email, or a USB stick.
+        </p>
+        <div class="actions">
+          <button id="export-btn" class="btn">Export as Zip…</button>
+        </div>
+        <div id="export-result" class="summary hidden"></div>
       </section>
 
       <section id="tab-restore" class="tab">
         <h1>Restore</h1>
         <p class="subtitle">Restore items from a backup directory back to their original locations.</p>
+
+        <h2>Import a backup</h2>
+        <p class="subtitle">
+          Bring in a backup made elsewhere: a cloud (git) remote, or a .zip file from a cloud
+          drive, email, or USB stick.
+        </p>
+        <label class="field">
+          <span>Git remote URL</span>
+          <div class="field-row">
+            <input id="import-git-url" type="text" placeholder="git@github.com:you/claude-backup.git" />
+            <button id="import-git-btn" class="btn">Clone / Pull</button>
+          </div>
+        </label>
+        <div class="actions">
+          <button id="import-zip-btn" class="btn">Import from Zip File…</button>
+        </div>
+        <div id="import-result" class="summary hidden"></div>
+
+        <hr />
 
         <label class="field">
           <span>Backup source directory</span>
@@ -109,7 +138,12 @@
 
         <label class="field-inline">
           <input id="settings-push" type="checkbox" />
-          <span>Push to remote after every backup</span>
+          <span>Push to remote after every backup (cloud backup)</span>
+        </label>
+
+        <label class="field-inline">
+          <input id="settings-pull-first" type="checkbox" />
+          <span>Pull latest from remote before each backup (recommended if more than one machine shares this remote)</span>
         </label>
 
         <hr />

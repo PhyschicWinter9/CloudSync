@@ -60,8 +60,8 @@ claudesync backup
 # Same, but also push to a private git remote.
 claudesync backup --remote git@github.com:you/claude-backup.git --push
 
-# On a new machine: clone your backup remote, then restore.
-git clone git@github.com:you/claude-backup.git ~/.claudesync-backup
+# On a new machine: import the backup, then restore.
+claudesync import git@github.com:you/claude-backup.git
 claudesync restore --dry-run     # see what would change first
 claudesync restore --yes         # apply it
 
@@ -79,6 +79,43 @@ recording exactly where each item came from so `restore` can put files back
 in their original, absolute locations — including files that live inside
 whichever project directory they were opened from, on whichever machine
 you restore to.
+
+## Cloud backup
+
+`--remote`/`--push` (above) push your backup to a git remote after every
+run — that remote can be a private GitHub/GitLab repo or any other git
+host, which is what "cloud backup" means here. If more than one machine
+shares the same remote, add `--pull-first` so each backup starts from the
+latest shared history instead of risking a rejected push:
+
+```
+claudesync backup --remote git@github.com:you/claude-backup.git --push --pull-first
+```
+
+## Import and export
+
+Bringing a backup onto a new machine, or sharing one somewhere that isn't
+git, works via `import`/`export`. `import` accepts a git URL (including a
+local path to a bare repo, e.g. on a NAS mount), a `.zip` file, or an
+existing local backup directory — it figures out which:
+
+```
+# From a cloud (git) remote.
+claudesync import git@github.com:you/claude-backup.git
+
+# From a .zip someone shared via a cloud drive, email, or USB stick.
+claudesync import ~/Downloads/claude-backup.zip
+
+claudesync restore --dry-run
+```
+
+`export` zips up a backup directory for anywhere git isn't convenient —
+drop the file in a Dropbox/Drive/OneDrive/iCloud folder, email it, or copy
+it to a USB stick:
+
+```
+claudesync export --out ~/Dropbox/claude-backup.zip
+```
 
 ## Automatic backups
 

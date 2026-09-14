@@ -48,12 +48,26 @@ function runBackup({
   home,
   push = false,
   remoteUrl,
+  pullFirst = false,
   ignoreDirnames = DEFAULT_IGNORE_DIRNAMES,
   onProgress,
 } = {}) {
   const resolvedHome = home || os.homedir();
   const resolvedDest = path.resolve(untildify(destDir));
   fs.mkdirSync(resolvedDest, { recursive: true });
+
+  let pulled = false;
+  // Pulling before scanning/copying means, when several machines share one
+  // remote, this run starts from the latest shared history instead of
+  // diverging from it (which would otherwise turn every push after the
+  // first machine into a rejected non-fast-forward push).
+  if (pullFirst && gitutil.isRepo(resolvedDest)) {
+    if (remoteUrl) gitutil.setRemote(resolvedDest, remoteUrl);
+    if (gitutil.remoteUrl(resolvedDest)) {
+      gitutil.pull(resolvedDest);
+      pulled = true;
+    }
+  }
 
   const items = scanAll({ extraProjects, home: resolvedHome });
 
@@ -131,6 +145,7 @@ function runBackup({
   return {
     copied,
     manifestPath,
+    pulled,
     committed,
     pushed,
     timestamp,

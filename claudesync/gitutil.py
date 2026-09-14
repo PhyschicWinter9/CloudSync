@@ -72,3 +72,29 @@ def current_branch(path: Path) -> str:
     result = _run(["rev-parse", "--abbrev-ref", "HEAD"], path)
     branch = result.stdout.strip()
     return branch if branch and branch != "HEAD" else "main"
+
+
+def clone(url: str, dest: Path) -> None:
+    """Clone `url` into `dest`, which must not already exist."""
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    result = subprocess.run(
+        ["git", "clone", url, str(dest)],
+        cwd=dest.parent,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise GitError(result.stderr.strip())
+
+
+def pull(path: Path) -> None:
+    result = _run(["pull", "--ff-only"], path)
+    if result.returncode != 0:
+        raise GitError(result.stderr.strip())
+
+
+def remote_url(path: Path, name: str = "origin") -> str | None:
+    result = _run(["remote", "get-url", name], path)
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip()

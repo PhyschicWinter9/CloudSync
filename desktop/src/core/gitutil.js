@@ -63,6 +63,25 @@ function currentBranch(dir) {
   return branch && branch !== 'HEAD' ? branch : 'main';
 }
 
+function clone(url, dest) {
+  const fs = require('fs');
+  const path = require('path');
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  const result = spawnSync('git', ['clone', url, dest], { cwd: path.dirname(dest), encoding: 'utf8' });
+  if (result.status !== 0) throw new GitError((result.stderr || '').trim());
+}
+
+function pull(dir) {
+  const result = run(['pull', '--ff-only'], dir);
+  if (result.status !== 0) throw new GitError(result.stderr.trim());
+}
+
+function remoteUrl(dir, name = 'origin') {
+  const result = run(['remote', 'get-url', name], dir);
+  if (result.status !== 0) return null;
+  return result.stdout.trim();
+}
+
 module.exports = {
   GitError,
   isRepo,
@@ -73,4 +92,7 @@ module.exports = {
   setRemote,
   push,
   currentBranch,
+  clone,
+  pull,
+  remoteUrl,
 };

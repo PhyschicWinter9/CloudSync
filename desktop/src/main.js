@@ -7,6 +7,8 @@ const { Store } = require('./core/store');
 const { scanAll } = require('./core/discovery');
 const { runBackup } = require('./core/backup');
 const restore = require('./core/restore');
+const importer = require('./core/importer');
+const exporter = require('./core/exporter');
 
 const DEFAULT_DEST = path.join(app.getPath('home'), '.claudesync-backup');
 
@@ -77,6 +79,7 @@ async function performScheduledBackup() {
       destDir,
       push: !!store.get('push'),
       remoteUrl: store.get('remoteUrl') || undefined,
+      pullFirst: !!store.get('pullFirst'),
     });
     const summary = result.summary();
     store.setAll({
@@ -202,11 +205,19 @@ function registerIpcHandlers() {
         destDir,
         push: !!store.get('push'),
         remoteUrl: store.get('remoteUrl') || undefined,
+        pullFirst: !!store.get('pullFirst'),
       });
       const summary = result.summary();
       store.setAll({ lastRunAt: new Date().toISOString(), lastRunSummary: summary, lastRunError: null });
       updateTrayMenu();
-      return { ok: true, summary, committed: result.committed, pushed: result.pushed, destDir };
+      return {
+        ok: true,
+        summary,
+        pulled: result.pulled,
+        committed: result.committed,
+        pushed: result.pushed,
+        destDir,
+      };
     } catch (err) {
       store.setAll({ lastRunAt: new Date().toISOString(), lastRunError: String(err.message || err) });
       updateTrayMenu();
@@ -230,6 +241,43 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle('shell:openPath', (_event, targetPath) => shell.openPath(targetPath));
+
+  ipcMain.handle('dialog:chooseZipToImport', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openFile'],
+      filters: [{ name: 'ClaudeSync backup archive', extensions: ['zip'] }],
+    });
+    if (result.canceled || result.filePaths.length === 0) return null;
+    return result.filePaths[0];
+  });
+
+  ipcMain.handle('dialog:chooseZipDestination', async () => {
+    const result = await dialog.showSaveDialog(mainWindow, {
+      defaultPath: `claudesync-backup-${new Date().toISOString().slice(0, 10)}.zip`,
+      filters: [{ name: 'ClaudeSync backup archive', extensions: ['zip'] }],
+    });
+    if (result.canceled || !result.filePath) return null;
+    return result.filePath;
+  });
+
+  ipcMain.handle('import:run', (_event, { source, dest }) => {
+    try {
+      const resultDir = importer.importSource(source, dest || currentDest());
+      const manifest = restore.loadManifest(resultDir);
+      return { ok: true, dest: resultDir, itemCount: (manifest.items || []).length };
+    } catch (err) {
+      return { ok: false, error: String(err.message || err) };
+    }
+  });
+
+  ipcMain.handle('export:run', (_event, { sourceDir, outPath, includeGitHistory }) => {
+    try {
+      const resultPath = exporter.exportZip(sourceDir || currentDest(), outPath, { includeGitHistory: !!includeGitHistory });
+      return { ok: true, outPath: resultPath };
+    } catch (err) {
+      return { ok: false, error: String(err.message || err) };
+    }
+  });
 }
 
 const SMOKE_TEST = process.argv.includes('--smoke-test');

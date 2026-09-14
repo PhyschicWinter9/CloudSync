@@ -7,7 +7,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import __version__, backup, restore, schedule
+from . import __version__, backup, exporter, importer, restore, schedule
 from .discovery import scan_all
 
 DEFAULT_BACKUP_DIR = Path.home() / ".claudesync-backup"
@@ -52,7 +52,10 @@ def cmd_backup(args: argparse.Namespace) -> int:
         extra_projects=[Path(p) for p in args.project],
         push=args.push,
         remote_url=args.remote,
+        pull_first=args.pull_first,
     )
+    if result.pulled:
+        print("Pulled latest changes from remote.")
     print(result.summary())
     print(f"Manifest: {result.manifest_path}")
     if result.committed:
@@ -61,6 +64,33 @@ def cmd_backup(args: argparse.Namespace) -> int:
         print("No changes since last backup.")
     if args.push:
         print("Pushed to remote." if result.pushed else "Push requested but not performed.")
+    return 0
+
+
+def cmd_import(args: argparse.Namespace) -> int:
+    try:
+        dest = importer.import_source(args.source, Path(args.dest))
+    except importer.ImportError_ as exc:
+        print(f"Import failed: {exc}", file=sys.stderr)
+        return 1
+
+    manifest = restore.load_manifest(dest)
+    print(f"Imported backup into {dest}")
+    print(f"{len(manifest.get('items', []))} item(s) available to restore.")
+    print(f"Next: claudesync restore --source {dest}")
+    return 0
+
+
+def cmd_export(args: argparse.Namespace) -> int:
+    try:
+        out_path = exporter.export_zip(Path(args.source), Path(args.out), include_git_history=args.include_git_history)
+    except exporter.ExportError as exc:
+        print(f"Export failed: {exc}", file=sys.stderr)
+        return 1
+
+    print(f"Exported backup to {out_path}")
+    print("Upload this file to a cloud drive (Dropbox/Drive/OneDrive/iCloud), email it, or copy it to a USB stick.")
+    print(f"On another machine: claudesync import {out_path}")
     return 0
 
 
@@ -116,6 +146,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_backup.add_argument("--dest", default=str(DEFAULT_BACKUP_DIR), help="Backup directory (default: %(default)s)")
     p_backup.add_argument("--push", action="store_true", help="git push the backup after committing")
     p_backup.add_argument("--remote", default=None, help="Git remote URL to configure as 'origin'")
+    p_backup.add_argument(
+        "--pull-first",
+        action="store_true",
+        help="git pull before backing up, so a shared remote's history from other machines isn't diverged from",
+    )
     p_backup.set_defaults(func=cmd_backup)
 
     p_restore = sub.add_parser("restore", help="Restore items from a backup directory")
@@ -130,6 +165,24 @@ def build_parser() -> argparse.ArgumentParser:
     p_restore.add_argument("--dry-run", action="store_true", help="Show what would be restored without changing anything")
     p_restore.add_argument("--yes", action="store_true", help="Skip the confirmation prompt")
     p_restore.set_defaults(func=cmd_restore)
+
+    p_import = sub.add_parser(
+        "import",
+        help="Import a backup from a git remote URL, a .zip file, or a local directory",
+    )
+    p_import.add_argument(
+        "source", help="A git URL (e.g. git@github.com:you/claude-backup.git), a .zip file, or a directory"
+    )
+    p_import.add_argument("--dest", default=str(DEFAULT_BACKUP_DIR), help="Where to put it (default: %(default)s)")
+    p_import.set_defaults(func=cmd_import)
+
+    p_export = sub.add_parser("export", help="Zip up a backup directory for transport anywhere git isn't")
+    p_export.add_argument("--source", default=str(DEFAULT_BACKUP_DIR), help="Backup directory to zip (default: %(default)s)")
+    p_export.add_argument("--out", required=True, help="Path to write the .zip file to")
+    p_export.add_argument(
+        "--include-git-history", action="store_true", help="Include the .git directory (full commit history) in the archive"
+    )
+    p_export.set_defaults(func=cmd_export)
 
     p_schedule = sub.add_parser("schedule", help="Install or remove an automatic backup schedule")
     p_schedule.add_argument("action", choices=["install", "uninstall"])

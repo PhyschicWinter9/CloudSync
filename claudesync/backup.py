@@ -39,6 +39,7 @@ class BackupResult:
     def __init__(self) -> None:
         self.copied: list[DiscoveredItem] = []
         self.manifest_path: Path | None = None
+        self.pulled = False
         self.committed = False
         self.pushed = False
 
@@ -58,6 +59,7 @@ def run_backup(
     home: Path | None = None,
     push: bool = False,
     remote_url: str | None = None,
+    pull_first: bool = False,
     ignore_dirnames: set[str] | None = None,
 ) -> BackupResult:
     home = home or Path.home()
@@ -65,11 +67,23 @@ def run_backup(
     dest_dir.mkdir(parents=True, exist_ok=True)
     ignore_dirnames = ignore_dirnames if ignore_dirnames is not None else DEFAULT_IGNORE_DIRNAMES
 
+    result = BackupResult()
+
+    # Pulling before scanning/copying means, when several machines share one
+    # remote, this run starts from the latest shared history instead of
+    # diverging from it (which would otherwise turn every push after the
+    # first machine into a rejected non-fast-forward push).
+    if pull_first and gitutil.is_repo(dest_dir):
+        if remote_url:
+            gitutil.set_remote(dest_dir, remote_url)
+        if gitutil.remote_url(dest_dir) is not None:
+            gitutil.pull(dest_dir)
+            result.pulled = True
+
     items = scan_all(extra_projects=extra_projects, home=home)
 
     manifest_items = []
     project_slugs: dict[str, str] = {}
-    result = BackupResult()
 
     for item in items:
         if item.scope == GLOBAL_SCOPE:

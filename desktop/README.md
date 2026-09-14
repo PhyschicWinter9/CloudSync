@@ -16,13 +16,23 @@ directory.
 - A window with four tabs:
   - **Dashboard** — last backup time, item counts by category, quick actions.
   - **Backup** — scan this machine and see exactly what was found before
-    backing it up.
-  - **Restore** — point at a backup directory, preview (dry run) what would
-    change, then restore, optionally filtered to specific categories.
-  - **Settings** — backup destination, git remote + push toggle, automatic
-    backup interval, and "start at login".
+    backing it up; export the backup as a `.zip` for anywhere git isn't.
+  - **Restore** — import a backup from a git remote or a `.zip` file, then
+    preview (dry run) and restore, optionally filtered to specific categories.
+  - **Settings** — backup destination, git remote + push (cloud backup) and
+    pull-first toggles, automatic backup interval, and "start at login".
 - Runs backups automatically on a configurable interval once enabled in
   Settings, and shows a native notification when one completes or fails.
+- **Cloud backup**: push to a private git remote after every backup, with
+  an optional pull-first so multiple machines sharing one remote don't
+  produce a rejected push.
+- **Import/export**: bring a backup made elsewhere onto this machine (git
+  URL — including a local bare-repo path such as a NAS mount — or a
+  `.zip`), or export one to a `.zip` to drop into a cloud drive folder
+  (Dropbox/Drive/OneDrive/iCloud), email, or a USB stick. The zip
+  reader/writer (`src/core/zip.js`) is dependency-free and produces
+  standard zip files (cross-checked against the system `unzip`/`zip`
+  tools and Python's `zipfile`).
 
 ## Develop
 
