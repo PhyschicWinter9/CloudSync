@@ -63,7 +63,7 @@ class TestImportZip(ImportExportTestCase):
         dest = self.root / "imported"
         result_dir = importer.import_zip(zip_path, dest)
 
-        self.assertEqual(result_dir, dest)
+        self.assertEqual(result_dir, dest.resolve())
         manifest = json.loads((dest / "manifest.json").read_text(encoding="utf-8"))
         self.assertGreaterEqual(len(manifest["items"]), 1)
         self.assertTrue((dest / "global" / ".claude" / "CLAUDE.md").is_file())

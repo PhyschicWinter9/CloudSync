@@ -128,7 +128,18 @@ function zipDirectory(sourceDir, outPath, { skipDirnames = new Set() } = {}) {
       if (entry.isDirectory()) {
         walk(full);
       } else if (entry.isFile()) {
-        entries.push({ name: path.relative(sourceDir, full), data: fs.readFileSync(full) });
+        let data;
+        try {
+          data = fs.readFileSync(full);
+        } catch (err) {
+          // A file can vanish between readdirSync listing it and this read —
+          // e.g. a transient git maintenance lock file under .git/objects.
+          // Skip it rather than failing the whole export over a file that
+          // was never meant to be durable.
+          if (err.code === 'ENOENT') continue;
+          throw err;
+        }
+        entries.push({ name: path.relative(sourceDir, full), data });
       }
     }
   }
