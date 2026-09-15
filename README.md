@@ -194,6 +194,21 @@ python3 -m unittest discover -s tests -v
   Windows, and Linux, builds the Python CLI's sdist/wheel, and attaches
   all of them to a GitHub Release for that tag.
 
+**Before tagging a release**, bump the version number in all three
+places — the git tag itself is not one of them, so a new tag alone does
+not change the built filenames:
+
+- `desktop/package.json`'s `"version"` (run `npm install
+  --package-lock-only` in `desktop/` afterward so `package-lock.json`
+  matches)
+- `claudesync/__init__.py`'s `__version__`
+- `pyproject.toml`'s `version`
+
+Skipping this step produces a release whose files are named identically
+to the previous one (e.g. `ClaudeSync-Setup-0.1.0.exe`) even under a new
+tag, since electron-builder and the Python build both name their output
+from these version fields, not from the tag name.
+
 ```
 git tag v0.1.0
 git push origin v0.1.0

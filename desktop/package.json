@@ -1,6 +1,6 @@
 {
   "name": "claudesync-desktop",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "ClaudeSync desktop app: automatic backup and restore for everything Claude Code stores on your machine",
   "private": true,
   "author": "ClaudeSync contributors",
