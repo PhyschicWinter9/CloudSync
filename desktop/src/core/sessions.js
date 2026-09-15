@@ -118,4 +118,64 @@ function readSession(filePath, limit) {
   return { messages: messages.slice(0, limit), total: messages.length, truncated: true };
 }
 
-module.exports = { parseMessages, listSessions, readSession };
+function renderMarkdown(messages, title) {
+  const lines = [`# Chat session: ${title}`, ''];
+  for (const msg of messages) {
+    const role = (msg.role || 'unknown').replace(/_/g, ' ');
+    const capitalized = role.charAt(0).toUpperCase() + role.slice(1);
+    lines.push(`**${capitalized}**`, '', msg.text || '*(no text)*', '');
+  }
+  if (messages.length === 0) lines.push('*(no readable messages found in this transcript)*');
+  return lines.join('\n');
+}
+
+function renderPlainText(messages) {
+  if (messages.length === 0) return '(no readable messages found in this transcript)';
+  return messages.map((m) => (m.text ? `[${m.role}] ${m.text}` : `[${m.role}]`)).join('\n');
+}
+
+function slugify(text) {
+  const slug = text.replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
+  return slug || 'session';
+}
+
+/**
+ * Writes every chat session found under `root` as one readable file per
+ * session in `outDir` (markdown by default, or plain text), so the whole
+ * chat history can be browsed or archived without ClaudeSync or the raw
+ * .jsonl format.
+ */
+function exportAllSessions(root, outDir, format = 'md') {
+  if (format !== 'md' && format !== 'txt') {
+    throw new Error(`Unknown export format: ${format} (expected 'md' or 'txt')`);
+  }
+
+  fs.mkdirSync(outDir, { recursive: true });
+
+  const written = [];
+  const usedNames = new Set();
+  for (const info of listSessions(root)) {
+    const date = new Date(info.mtimeMs).toISOString().slice(0, 10);
+    const stem = path.basename(info.path, path.extname(info.path));
+    const base = slugify(`${date}_${info.projectHint}_${stem}`);
+
+    let name = `${base}.${format}`;
+    let suffix = 2;
+    while (usedNames.has(name)) {
+      name = `${base}-${suffix}.${format}`;
+      suffix += 1;
+    }
+    usedNames.add(name);
+
+    const messages = parseMessages(fs.readFileSync(info.path, 'utf8'));
+    const content = format === 'md' ? renderMarkdown(messages, stem) : renderPlainText(messages);
+
+    const outPath = path.join(outDir, name);
+    fs.writeFileSync(outPath, content, 'utf8');
+    written.push(outPath);
+  }
+
+  return written;
+}
+
+module.exports = { parseMessages, listSessions, readSession, exportAllSessions };

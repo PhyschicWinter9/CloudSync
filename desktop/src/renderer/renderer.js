@@ -349,6 +349,29 @@ function wireSessionPreview() {
     $('session-viewer').classList.add('hidden');
     $('sessions-list').classList.remove('hidden');
   });
+
+  $('export-sessions-btn').addEventListener('click', async () => {
+    const outDir = await claudesync.chooseDirectory();
+    if (!outDir) return;
+
+    setStatus('busy', 'Exporting all chats…');
+    const format = $('export-sessions-format').value;
+    const result = await claudesync.exportAllSessions({
+      sourceDir: $('restore-source').value,
+      outDir,
+      format,
+    });
+
+    const box = $('export-sessions-result');
+    box.classList.remove('hidden');
+    if (result.ok) {
+      box.textContent = `Exported ${result.count} chat(s) to ${result.outDir}`;
+      setStatus('ok', 'Export complete');
+    } else {
+      box.textContent = `Export failed: ${result.error}`;
+      setStatus('error', 'Export failed');
+    }
+  });
 }
 
 function wireSettingsTab() {

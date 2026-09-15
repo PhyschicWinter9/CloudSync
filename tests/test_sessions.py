@@ -147,5 +147,91 @@ class TestRenderText(unittest.TestCase):
             self.assertTrue(output[2].startswith("... (truncated"))
 
 
+class TestRenderMarkdown(unittest.TestCase):
+    def test_renders_roles_and_text_as_markdown(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "s.jsonl"
+            path.write_text(
+                "\n".join(
+                    [
+                        _line({"type": "user", "message": {"role": "user", "content": "hello"}}),
+                        _line({"type": "assistant", "message": {"role": "assistant", "content": "hi there"}}),
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            md = sessions.render_markdown(path, title="my-session")
+            self.assertIn("# Chat session: my-session", md)
+            self.assertIn("**User**", md)
+            self.assertIn("hello", md)
+            self.assertIn("**Assistant**", md)
+            self.assertIn("hi there", md)
+
+    def test_empty_transcript_says_so(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "empty.jsonl"
+            path.write_text("", encoding="utf-8")
+            md = sessions.render_markdown(path, title="empty")
+            self.assertIn("no readable messages", md)
+
+
+class TestExportAllSessions(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self._tmp.name)
+        self.addCleanup(self._tmp.cleanup)
+
+    def write_session(self, relpath: str, text: str) -> Path:
+        path = self.root / relpath
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(_line({"type": "user", "message": {"role": "user", "content": text}}), encoding="utf-8")
+        return path
+
+    def test_exports_one_markdown_file_per_session(self):
+        self.write_session("projects/-home-user-a/sess1.jsonl", "first chat")
+        self.write_session("projects/-home-user-b/sess2.jsonl", "second chat")
+
+        out_dir = self.root / "out"
+        written = sessions.export_all_sessions(self.root, out_dir, fmt="md")
+
+        self.assertEqual(len(written), 2)
+        for p in written:
+            self.assertTrue(p.is_file())
+            self.assertEqual(p.suffix, ".md")
+        contents = [p.read_text(encoding="utf-8") for p in written]
+        self.assertTrue(any("first chat" in c for c in contents))
+        self.assertTrue(any("second chat" in c for c in contents))
+
+    def test_txt_format(self):
+        self.write_session("projects/-home-user-a/sess1.jsonl", "plain text chat")
+        out_dir = self.root / "out"
+        written = sessions.export_all_sessions(self.root, out_dir, fmt="txt")
+
+        self.assertEqual(len(written), 1)
+        self.assertEqual(written[0].suffix, ".txt")
+        self.assertEqual(written[0].read_text(encoding="utf-8"), "[user] plain text chat")
+
+    def test_deduplicates_colliding_filenames(self):
+        # Same mtime/project-hint/stem would collide; different subdirs.
+        self.write_session("projects/proj/sess.jsonl", "chat A")
+        self.write_session("other/proj/sess.jsonl", "chat A duplicate name")
+
+        out_dir = self.root / "out"
+        written = sessions.export_all_sessions(self.root, out_dir, fmt="md")
+
+        self.assertEqual(len(written), 2)
+        names = {p.name for p in written}
+        self.assertEqual(len(names), 2)
+
+    def test_no_sessions_returns_empty_list(self):
+        out_dir = self.root / "out"
+        written = sessions.export_all_sessions(self.root, out_dir, fmt="md")
+        self.assertEqual(written, [])
+
+    def test_rejects_unknown_format(self):
+        with self.assertRaises(ValueError):
+            sessions.export_all_sessions(self.root, self.root / "out", fmt="pdf")
+
+
 if __name__ == "__main__":
     unittest.main()

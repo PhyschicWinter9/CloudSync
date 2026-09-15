@@ -6,7 +6,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const { parseMessages, listSessions, readSession } = require('../src/core/sessions');
+const { parseMessages, listSessions, readSession, exportAllSessions } = require('../src/core/sessions');
 
 function line(obj) {
   return JSON.stringify(obj);
@@ -138,4 +138,66 @@ test('readSession without a limit returns everything', () => {
   const result = readSession(sessionPath);
   assert.equal(result.messages.length, 1);
   assert.equal(result.truncated, false);
+});
+
+function writeSession(root, relPath, text) {
+  const full = path.join(root, relPath);
+  fs.mkdirSync(path.dirname(full), { recursive: true });
+  fs.writeFileSync(full, line({ type: 'user', message: { role: 'user', content: text } }), 'utf8');
+  return full;
+}
+
+test('exportAllSessions writes one markdown file per session', () => {
+  const root = makeTmp();
+  writeSession(root, 'projects/-home-user-a/sess1.jsonl', 'first chat');
+  writeSession(root, 'projects/-home-user-b/sess2.jsonl', 'second chat');
+
+  const outDir = path.join(root, 'out');
+  const written = exportAllSessions(root, outDir, 'md');
+
+  assert.equal(written.length, 2);
+  for (const p of written) {
+    assert.equal(fs.existsSync(p), true);
+    assert.equal(path.extname(p), '.md');
+  }
+  const contents = written.map((p) => fs.readFileSync(p, 'utf8'));
+  assert.ok(contents.some((c) => c.includes('first chat')));
+  assert.ok(contents.some((c) => c.includes('second chat')));
+  assert.ok(contents.some((c) => c.includes('**User**')));
+});
+
+test('exportAllSessions supports txt format', () => {
+  const root = makeTmp();
+  writeSession(root, 'projects/-home-user-a/sess1.jsonl', 'plain text chat');
+
+  const outDir = path.join(root, 'out');
+  const written = exportAllSessions(root, outDir, 'txt');
+
+  assert.equal(written.length, 1);
+  assert.equal(path.extname(written[0]), '.txt');
+  assert.equal(fs.readFileSync(written[0], 'utf8'), '[user] plain text chat');
+});
+
+test('exportAllSessions deduplicates colliding filenames', () => {
+  const root = makeTmp();
+  writeSession(root, 'projects/proj/sess.jsonl', 'chat A');
+  writeSession(root, 'other/proj/sess.jsonl', 'chat A duplicate name');
+
+  const outDir = path.join(root, 'out');
+  const written = exportAllSessions(root, outDir, 'md');
+
+  assert.equal(written.length, 2);
+  const names = new Set(written.map((p) => path.basename(p)));
+  assert.equal(names.size, 2);
+});
+
+test('exportAllSessions returns an empty array when there are no sessions', () => {
+  const root = makeTmp();
+  const written = exportAllSessions(root, path.join(root, 'out'), 'md');
+  assert.deepEqual(written, []);
+});
+
+test('exportAllSessions rejects an unknown format', () => {
+  const root = makeTmp();
+  assert.throws(() => exportAllSessions(root, path.join(root, 'out'), 'pdf'));
 });

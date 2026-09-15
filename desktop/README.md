@@ -43,6 +43,11 @@ directory.
   Code's transcript format isn't a documented API, so the parser
   (`src/core/sessions.js`) is intentionally tolerant: it skips lines or
   blocks it doesn't recognize rather than failing.
+- **Export all chats**: "Export All Chats…" in the same section writes
+  every session found in the loaded backup as one readable Markdown or
+  plain-text file per chat, to a folder you choose — for browsing or
+  archiving your whole chat history outside ClaudeSync and outside the raw
+  `.jsonl` format.
 
 ## Develop
 

@@ -295,6 +295,15 @@ function registerIpcHandlers() {
       return { ok: false, error: String(err.message || err) };
     }
   });
+
+  ipcMain.handle('sessions:exportAll', (_event, { sourceDir, outDir, format }) => {
+    try {
+      const written = sessions.exportAllSessions(sourceDir || currentDest(), outDir, format || 'md');
+      return { ok: true, count: written.length, outDir };
+    } catch (err) {
+      return { ok: false, error: String(err.message || err) };
+    }
+  });
 }
 
 const SMOKE_TEST = process.argv.includes('--smoke-test');

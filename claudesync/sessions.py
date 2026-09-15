@@ -12,7 +12,9 @@ crashing. Worst case you see less detail, not an error.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Iterator
 
@@ -130,3 +132,63 @@ def render_text(jsonl_path: Path, limit: int | None = None) -> Iterator[str]:
         if limit and count >= limit:
             yield f"... (truncated at {limit} messages; use --limit to see more)"
             break
+
+
+def render_markdown(jsonl_path: Path, title: str) -> str:
+    """Render a whole transcript as a readable Markdown document."""
+    lines = [f"# Chat session: {title}", ""]
+    any_messages = False
+    for msg in iterate_messages(jsonl_path):
+        any_messages = True
+        role = (msg["role"] or "unknown").replace("_", " ").capitalize()
+        lines.append(f"**{role}**")
+        lines.append("")
+        lines.append(msg["text"] if msg["text"] else "*(no text)*")
+        lines.append("")
+    if not any_messages:
+        lines.append("*(no readable messages found in this transcript)*")
+    return "\n".join(lines)
+
+
+_SLUG_RE = re.compile(r"[^A-Za-z0-9._-]+")
+
+
+def _slugify(text: str) -> str:
+    slug = _SLUG_RE.sub("-", text).strip("-")
+    return slug or "session"
+
+
+def export_all_sessions(root: Path, out_dir: Path, fmt: str = "md") -> list[Path]:
+    """Write every chat session found under `root` as one readable file per
+    session in `out_dir` (markdown by default, or plain text), so the whole
+    chat history can be browsed or archived without ClaudeSync or the raw
+    .jsonl format.
+    """
+    if fmt not in ("md", "txt"):
+        raise ValueError(f"Unknown export format: {fmt!r} (expected 'md' or 'txt')")
+
+    out_dir = Path(out_dir).expanduser()
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    written: list[Path] = []
+    used_names: set[str] = set()
+    for info in list_sessions(root):
+        date = datetime.fromtimestamp(info.mtime).strftime("%Y-%m-%d")
+        base = _slugify(f"{date}_{info.project_hint}_{info.path.stem}")
+        name = f"{base}.{fmt}"
+        suffix = 2
+        while name in used_names:
+            name = f"{base}-{suffix}.{fmt}"
+            suffix += 1
+        used_names.add(name)
+
+        if fmt == "md":
+            content = render_markdown(info.path, title=info.path.stem)
+        else:
+            content = "\n".join(render_text(info.path)) or "(no readable messages found in this transcript)"
+
+        out_path = out_dir / name
+        out_path.write_text(content, encoding="utf-8")
+        written.append(out_path)
+
+    return written

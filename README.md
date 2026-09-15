@@ -101,6 +101,22 @@ claudesync preview-session 1 --source ~/.claudesync-backup
 an index. This only reads the transcript — nothing is restored until you
 run `claudesync restore`.
 
+## Export every chat as readable files
+
+`export-sessions` writes every chat session found in a backup as one
+readable file each — Markdown by default, or plain text — so you can
+browse or archive your whole chat history without ClaudeSync, a backup
+directory, or the raw `.jsonl` format:
+
+```
+claudesync export-sessions --source ~/.claudesync-backup --out-dir ~/chat-archive
+# Exported 47 chat session(s) to ~/chat-archive
+
+claudesync export-sessions --source ~/.claudesync-backup --out-dir ~/chat-archive --format txt
+```
+
+Each file is named `<date>_<project>_<session-id>.md` (or `.txt`).
+
 ## Cloud backup
 
 `--remote`/`--push` (above) push your backup to a git remote after every

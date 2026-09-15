@@ -124,11 +124,18 @@
         <h2>Chat sessions</h2>
         <p class="subtitle">
           Read a session transcript before you rely on it — verify it's actually the
-          conversation you expect.
+          conversation you expect. Or export every chat as a readable file to browse
+          or archive outside ClaudeSync.
         </p>
         <div class="actions">
           <button id="sessions-list-btn" class="btn">List Chat Sessions</button>
+          <select id="export-sessions-format" class="btn">
+            <option value="md">Markdown (.md)</option>
+            <option value="txt">Plain text (.txt)</option>
+          </select>
+          <button id="export-sessions-btn" class="btn">Export All Chats…</button>
         </div>
+        <div id="export-sessions-result" class="summary hidden"></div>
         <div id="sessions-list" class="item-list hidden"></div>
 
         <div id="session-viewer" class="session-viewer hidden">

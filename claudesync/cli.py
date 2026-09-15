@@ -179,6 +179,15 @@ def cmd_preview_session(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_export_sessions(args: argparse.Namespace) -> int:
+    written = sessions.export_all_sessions(Path(args.source), Path(args.out_dir), fmt=args.format)
+    if not written:
+        print(f"No chat session transcripts found under {args.source}.")
+        return 0
+    print(f"Exported {len(written)} chat session(s) to {args.out_dir}")
+    return 0
+
+
 def cmd_schedule(args: argparse.Namespace) -> int:
     if args.action == "install":
         message = schedule.install(Path(args.dest), interval_hours=args.interval, push=args.push)
@@ -255,6 +264,17 @@ def build_parser() -> argparse.ArgumentParser:
     p_preview.add_argument("--source", default=str(DEFAULT_BACKUP_DIR), help="Backup directory, used to resolve an index")
     p_preview.add_argument("--limit", type=int, default=200, help="Max messages to print (default: %(default)s)")
     p_preview.set_defaults(func=cmd_preview_session)
+
+    p_export_sessions = sub.add_parser(
+        "export-sessions",
+        help="Export every chat session as a readable file, to browse or archive outside ClaudeSync",
+    )
+    p_export_sessions.add_argument(
+        "--source", default=str(DEFAULT_BACKUP_DIR), help="Backup directory to read sessions from (default: %(default)s)"
+    )
+    p_export_sessions.add_argument("--out-dir", required=True, help="Directory to write one file per session into")
+    p_export_sessions.add_argument("--format", choices=["md", "txt"], default="md", help="Output format (default: %(default)s)")
+    p_export_sessions.set_defaults(func=cmd_export_sessions)
 
     p_schedule = sub.add_parser("schedule", help="Install or remove an automatic backup schedule")
     p_schedule.add_argument("action", choices=["install", "uninstall"])
